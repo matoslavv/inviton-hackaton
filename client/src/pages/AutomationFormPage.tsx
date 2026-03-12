@@ -14,6 +14,28 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string }[] = [
   { value: 'reminder', label: 'Reminder (tickets)' },
 ];
 
+type DurationUnit = 'minutes' | 'hours' | 'days' | 'weeks';
+
+const UNIT_OPTIONS: { value: DurationUnit; label: string; short: string; minutes: number }[] = [
+  { value: 'minutes', label: 'Minutes', short: 'min', minutes: 1 },
+  { value: 'hours', label: 'Hours', short: 'hr', minutes: 60 },
+  { value: 'days', label: 'Days', short: 'd', minutes: 1440 },
+  { value: 'weeks', label: 'Weeks', short: 'wk', minutes: 10080 },
+];
+
+function minutesToBestUnit(totalMinutes: number): { value: number; unit: DurationUnit } {
+  if (totalMinutes === 0) return { value: 0, unit: 'days' };
+  if (totalMinutes % 10080 === 0) return { value: totalMinutes / 10080, unit: 'weeks' };
+  if (totalMinutes % 1440 === 0) return { value: totalMinutes / 1440, unit: 'days' };
+  if (totalMinutes % 60 === 0) return { value: totalMinutes / 60, unit: 'hours' };
+  return { value: totalMinutes, unit: 'minutes' };
+}
+
+function unitToMinutes(value: number, unit: DurationUnit): number {
+  const multiplier = UNIT_OPTIONS.find((u) => u.value === unit)!.minutes;
+  return Math.round(value * multiplier);
+}
+
 interface Props {
   eventId: number;
   automationId: number | null;
@@ -23,7 +45,8 @@ interface Props {
 export default function AutomationFormPage({ eventId, automationId, onBack }: Props) {
   const [name, setName] = useState('');
   const [triggerType, setTriggerType] = useState<TriggerType>('after_purchase');
-  const [daysOffset, setDaysOffset] = useState<number>(0);
+  const [durationValue, setDurationValue] = useState<number>(0);
+  const [durationUnit, setDurationUnit] = useState<DurationUnit>('days');
   const [templateId, setTemplateId] = useState<number | ''>('');
   const [ticketTypeId, setTicketTypeId] = useState<number | ''>('');
   const [pdfPath, setPdfPath] = useState<string | null>(null);
@@ -39,6 +62,7 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const isReminder = triggerType === 'reminder';
+  const totalMinutes = unitToMinutes(durationValue, durationUnit);
 
   useEffect(() => {
     getTemplates().then(setTemplates).catch(console.error);
@@ -53,7 +77,11 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
         if (found) {
           setName(found.name);
           setTriggerType(found.triggerType);
-          setDaysOffset(found.daysOffset ?? 0);
+          if (found.daysOffset !== null) {
+            const { value, unit } = minutesToBestUnit(found.daysOffset);
+            setDurationValue(value);
+            setDurationUnit(unit);
+          }
           setTemplateId(found.templateId);
           setTicketTypeId(found.ticketTypeId ?? '');
           setPdfPath(found.pdfPath);
@@ -86,7 +114,7 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
     const data: Partial<Automation> = {
       name: name.trim(),
       triggerType,
-      daysOffset: isReminder ? null : daysOffset,
+      daysOffset: isReminder ? null : totalMinutes,
       templateId: templateId === '' ? undefined : templateId,
       ticketTypeId: isReminder ? null : (ticketTypeId === '' ? null : ticketTypeId as number),
       pdfPath: isReminder ? null : pdfPath,
@@ -120,6 +148,19 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
       setTestSending(false);
     }
   };
+
+  // Quick presets
+  const presets = [
+    { label: '30 min', value: 30, unit: 'minutes' as DurationUnit },
+    { label: '1 hour', value: 1, unit: 'hours' as DurationUnit },
+    { label: '1 day', value: 1, unit: 'days' as DurationUnit },
+    { label: '3 days', value: 3, unit: 'days' as DurationUnit },
+    { label: '1 week', value: 1, unit: 'weeks' as DurationUnit },
+  ];
+
+  const triggerLabel = triggerType === 'after_purchase' ? 'after purchase'
+    : triggerType === 'before_event' ? 'before event'
+    : 'after event';
 
   return (
     <div className="page-container">
@@ -168,18 +209,57 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
                 ))}
               </select>
             </div>
+
+            {/* ── Smart duration picker ── */}
             {!isReminder && (
               <div className="form-field">
-                <label htmlFor="days-offset">Days offset</label>
-                <input
-                  id="days-offset"
-                  data-testid="days-offset-input"
-                  className="form-input form-input--narrow"
-                  type="number"
-                  value={daysOffset}
-                  onChange={(e) => setDaysOffset(Number(e.target.value))}
-                  min={0}
-                />
+                <label>Send timing</label>
+                <div className="duration-picker">
+                  <div className="duration-picker-inputs">
+                    <input
+                      data-testid="days-offset-input"
+                      className="form-input duration-picker-value"
+                      type="number"
+                      value={durationValue}
+                      onChange={(e) => setDurationValue(Math.max(0, Number(e.target.value)))}
+                      min={0}
+                    />
+                    <select
+                      className="form-input duration-picker-unit"
+                      value={durationUnit}
+                      onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
+                    >
+                      {UNIT_OPTIONS.map((u) => (
+                        <option key={u.value} value={u.value}>{u.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="duration-picker-presets">
+                    {presets.map((p) => {
+                      const isActive = durationValue === p.value && durationUnit === p.unit;
+                      return (
+                        <button
+                          key={p.label}
+                          type="button"
+                          className={`duration-preset ${isActive ? 'duration-preset--active' : ''}`}
+                          onClick={() => { setDurationValue(p.value); setDurationUnit(p.unit); }}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {durationValue > 0 && (
+                    <div className="duration-picker-summary">
+                      Email will be sent <strong>{durationValue} {durationUnit}</strong> {triggerLabel}
+                    </div>
+                  )}
+                  {durationValue === 0 && (
+                    <div className="duration-picker-summary">
+                      Email will be sent <strong>immediately</strong> {triggerLabel}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

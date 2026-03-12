@@ -17,6 +17,15 @@ const TRIGGER_BADGE: Record<Automation['triggerType'], string> = {
   reminder: 'badge badge-reminder',
 };
 
+function formatDuration(totalMinutes: number | null): string {
+  if (totalMinutes === null) return '\u2014';
+  if (totalMinutes === 0) return 'Immediately';
+  if (totalMinutes % 10080 === 0) { const v = totalMinutes / 10080; return `${v}w`; }
+  if (totalMinutes % 1440 === 0) { const v = totalMinutes / 1440; return `${v}d`; }
+  if (totalMinutes % 60 === 0) { const v = totalMinutes / 60; return `${v}h`; }
+  return `${totalMinutes}min`;
+}
+
 interface Props {
   onAdd: (eventId: number) => void;
   onEdit: (eventId: number, automationId: number) => void;
@@ -161,7 +170,7 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                 <tr>
                   <th>Campaign</th>
                   <th>Trigger</th>
-                  <th>Days</th>
+                  <th>Timing</th>
                   <th className="col-secondary">Template</th>
                   <th className="col-secondary">Ticket filter</th>
                   <th>Active</th>
@@ -218,7 +227,7 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                   >
                     <td className="cell-name" data-testid="automation-name">{a.name}</td>
                     <td><span className={TRIGGER_BADGE[a.triggerType]}>{TRIGGER_LABELS[a.triggerType]}</span></td>
-                    <td className="cell-muted">{a.daysOffset !== null ? a.daysOffset : '\u2014'}</td>
+                    <td className="cell-muted">{formatDuration(a.daysOffset)}</td>
                     <td className="cell-truncate col-secondary">{a.template?.name ?? '\u2014'}</td>
                     <td className="col-secondary">{a.ticketType?.name ?? 'All'}</td>
                     <td onClick={(e) => e.stopPropagation()}>{renderToggle(a)}</td>
@@ -253,7 +262,7 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                 </div>
                 <div className="automation-card-details">
                   {a.template?.name ?? 'No template'} &middot; {a.ticketType?.name ?? 'All tickets'}
-                  {a.daysOffset !== null && <> &middot; {a.daysOffset}d</>}
+                  {a.daysOffset !== null && <> &middot; {formatDuration(a.daysOffset)}</>}
                 </div>
                 <div className="automation-card-actions">
                   <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

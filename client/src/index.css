@@ -743,6 +743,72 @@ body::before {
   margin-top: 6px;
 }
 
+/* ── Duration picker ─────────────────────────────────── */
+.duration-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.duration-picker-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.duration-picker-value {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.duration-picker-unit {
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.duration-picker-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.duration-preset {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.duration-preset:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+}
+
+.duration-preset--active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent-hover);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.duration-picker-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--accent-subtle);
+  border-left: 3px solid var(--accent);
+}
+
+.duration-picker-summary strong {
+  color: var(--accent-hover);
+}
+
 .form-actions {
   display: flex;
   gap: 12px;
