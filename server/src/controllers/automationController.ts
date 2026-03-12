@@ -4,12 +4,12 @@ import { automations } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { AppError } from "../middleware/errorHandler";
 
-const VALID_TRIGGER_TYPES = [
+const VALID_TRIGGER_TYPES: string[] = [
   "after_purchase",
   "before_event",
   "after_event",
   "reminder",
-] as const;
+];
 
 export const getAutomations = async (
   req: Request,

@@ -21,16 +21,9 @@ export default defineConfig({
     },
   ],
 
-  webServer: [
-    {
-      command: 'cd server && npm run dev',
-      port: 3001,
-      reuseExistingServer: !process.env.CI,
-    },
-    {
-      command: 'cd client && npm run dev',
-      port: 5173,
-      reuseExistingServer: !process.env.CI,
-    },
-  ],
+  webServer: {
+    command: 'cd client && npm run dev',
+    port: 5173,
+    reuseExistingServer: !process.env.CI,
+  },
 });
