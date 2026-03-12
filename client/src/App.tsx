@@ -9,21 +9,27 @@ type View =
 function App() {
   const [view, setView] = useState<View>({ page: 'list' });
 
-  if (view.page === 'form') {
-    return (
-      <AutomationFormPage
-        eventId={view.eventId}
-        automationId={view.automationId}
-        onBack={() => setView({ page: 'list' })}
-      />
-    );
-  }
-
   return (
-    <AutomationListPage
-      onAdd={(eventId) => setView({ page: 'form', eventId, automationId: null })}
-      onEdit={(eventId, automationId) => setView({ page: 'form', eventId, automationId })}
-    />
+    <>
+      <header className="app-header">
+        <span className="app-header-logo">Inviton</span>
+        <span className="app-header-sep" />
+        <span className="app-header-subtitle">Email Automations</span>
+      </header>
+
+      {view.page === 'form' ? (
+        <AutomationFormPage
+          eventId={view.eventId}
+          automationId={view.automationId}
+          onBack={() => setView({ page: 'list' })}
+        />
+      ) : (
+        <AutomationListPage
+          onAdd={(eventId) => setView({ page: 'form', eventId, automationId: null })}
+          onEdit={(eventId, automationId) => setView({ page: 'form', eventId, automationId })}
+        />
+      )}
+    </>
   );
 }
 

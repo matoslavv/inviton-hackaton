@@ -122,76 +122,45 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
     }
   };
 
-  const cardStyle: React.CSSProperties = {
-    maxWidth: 600,
-    margin: '0 auto',
-    padding: 32,
-    border: '1px solid #e5e7eb',
-    borderRadius: 8,
-    background: '#fff',
-  };
-
-  const fieldStyle: React.CSSProperties = {
-    marginBottom: 20,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-  };
-
-  const inputStyle: React.CSSProperties = {
-    padding: '8px 12px',
-    fontSize: 14,
-    border: '1px solid #ccc',
-    borderRadius: 4,
-  };
-
-  const btnPrimary: React.CSSProperties = {
-    padding: '10px 20px',
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 4,
-    cursor: 'pointer',
-    fontSize: 14,
-  };
-
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: 24 }}>
+    <div className="page-container" style={{ maxWidth: 960, margin: '0 auto', padding: 24 }}>
       <button
         data-testid="back-btn"
         onClick={onBack}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, marginBottom: 16, color: '#2563eb' }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, marginBottom: 16, color: '#2563eb', minHeight: 44 }}
       >
         &larr; Back to list
       </button>
 
-      <div style={cardStyle}>
+      <div className="form-card" style={{ maxWidth: 600, margin: '0 auto', padding: 32, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
         <h2 style={{ marginTop: 0, marginBottom: 24 }}>
           {automationId !== null ? 'Edit Automation' : 'New Automation'}
         </h2>
 
-        <div style={fieldStyle}>
+        <div className="form-field" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <label htmlFor="campaign-name">Campaign name *</label>
           <input
             id="campaign-name"
             data-testid="campaign-name-input"
+            className="form-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Welcome email"
             required
-            style={inputStyle}
+            style={{ padding: '8px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 4 }}
           />
         </div>
 
-        <div style={fieldStyle}>
+        <div className="form-field" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <label htmlFor="trigger-type">Trigger type</label>
           <select
             id="trigger-type"
             data-testid="trigger-type-select"
+            className="form-input"
             value={triggerType}
             onChange={(e) => setTriggerType(e.target.value as TriggerType)}
-            style={inputStyle}
+            style={{ padding: '8px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 4 }}
           >
             {TRIGGER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -200,28 +169,30 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
         </div>
 
         {!isReminder && (
-          <div style={fieldStyle}>
+          <div className="form-field" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <label htmlFor="days-offset">Days offset</label>
             <input
               id="days-offset"
               data-testid="days-offset-input"
+              className="form-input"
               type="number"
               value={daysOffset}
               onChange={(e) => setDaysOffset(Number(e.target.value))}
               min={0}
-              style={{ ...inputStyle, width: 120 }}
+              style={{ padding: '8px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 4, width: 120 }}
             />
           </div>
         )}
 
-        <div style={fieldStyle}>
+        <div className="form-field" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <label htmlFor="template">Email template</label>
           <select
             id="template"
             data-testid="template-select"
+            className="form-input"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value === '' ? '' : Number(e.target.value))}
-            style={inputStyle}
+            style={{ padding: '8px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 4 }}
           >
             <option value="">— Select template —</option>
             {templates.map((t) => (
@@ -232,14 +203,15 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
 
         {!isReminder && (
           <>
-            <div style={fieldStyle}>
+            <div className="form-field" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label htmlFor="ticket-type">Ticket type filter</label>
               <select
                 id="ticket-type"
                 data-testid="ticket-type-select"
+                className="form-input"
                 value={ticketTypeId}
                 onChange={(e) => setTicketTypeId(e.target.value === '' ? '' : Number(e.target.value))}
-                style={inputStyle}
+                style={{ padding: '8px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 4 }}
               >
                 <option value="">All ticket types</option>
                 {ticketTypes.map((tt) => (
@@ -248,7 +220,7 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
               </select>
             </div>
 
-            <div style={fieldStyle}>
+            <div className="form-field" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label htmlFor="pdf-upload">PDF attachment (max 2 MB)</label>
               <input
                 id="pdf-upload"
@@ -270,29 +242,32 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
         )}
 
         {automationId !== null && (
-          <div style={{ ...fieldStyle, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+          <div className="form-field" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
             <button
               type="button"
+              className="form-btn-secondary"
               onClick={() => setShowTestInput(!showTestInput)}
-              style={{ ...btnPrimary, background: '#6b7280', width: 'fit-content' }}
+              style={{ background: '#6b7280', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, padding: '10px 20px', width: 'fit-content' }}
             >
               Send test preview
             </button>
             {showTestInput && (
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <div className="test-email-row" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <input
                   data-testid="test-email-input"
+                  className="form-input"
                   type="email"
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
                   placeholder="test@example.com"
-                  style={{ ...inputStyle, flex: 1 }}
+                  style={{ padding: '8px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 4, flex: 1 }}
                 />
                 <button
                   data-testid="send-test-btn"
+                  className="form-btn-primary"
                   onClick={handleSendTest}
                   disabled={testSending || !testEmail.trim()}
-                  style={btnPrimary}
+                  style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14 }}
                 >
                   {testSending ? 'Sending...' : 'Send'}
                 </button>
@@ -304,9 +279,10 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
         <div style={{ marginTop: 24 }}>
           <button
             data-testid="save-btn"
+            className="form-btn-primary"
             onClick={handleSave}
             disabled={saving || !name.trim()}
-            style={{ ...btnPrimary, opacity: saving || !name.trim() ? 0.6 : 1 }}
+            style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, opacity: saving || !name.trim() ? 0.6 : 1 }}
           >
             {saving ? 'Saving...' : 'Save'}
           </button>

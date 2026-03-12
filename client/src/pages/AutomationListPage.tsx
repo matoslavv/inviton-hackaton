@@ -64,11 +64,45 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
     }
   };
 
+  const toggleSwitch = (a: Automation) => (
+    <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24 }}>
+      <input
+        type="checkbox"
+        data-testid="automation-toggle"
+        checked={a.active}
+        onChange={() => handleToggle(a.id)}
+        style={{ position: 'absolute', opacity: 0, width: 44, height: 24, margin: 0, cursor: 'pointer' }}
+      />
+      <span
+        style={{
+          position: 'absolute',
+          cursor: 'pointer',
+          inset: 0,
+          backgroundColor: a.active ? '#22c55e' : '#ccc',
+          borderRadius: 24,
+          transition: 'background-color 0.2s',
+        }}
+      />
+      <span
+        style={{
+          position: 'absolute',
+          height: 18,
+          width: 18,
+          left: a.active ? 22 : 3,
+          bottom: 3,
+          backgroundColor: '#fff',
+          borderRadius: '50%',
+          transition: 'left 0.2s',
+        }}
+      />
+    </label>
+  );
+
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: 24 }}>
+    <div className="page-container" style={{ maxWidth: 960, margin: '0 auto', padding: 24 }}>
       <h1 style={{ marginBottom: 16 }}>Email Automations</h1>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24 }}>
+      <div className="automation-toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24 }}>
         <label htmlFor="event-selector" style={{ fontWeight: 600 }}>Event:</label>
         <select
           id="event-selector"
@@ -106,93 +140,113 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
       ) : automations.length === 0 ? (
         <p style={{ color: '#888' }}>No automations yet. Create one to get started.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left' }}>
-              <th style={{ padding: '8px 12px' }}>Campaign</th>
-              <th style={{ padding: '8px 12px' }}>Trigger</th>
-              <th style={{ padding: '8px 12px' }}>Days</th>
-              <th style={{ padding: '8px 12px' }}>Template</th>
-              <th style={{ padding: '8px 12px' }}>Ticket filter</th>
-              <th style={{ padding: '8px 12px' }}>Active</th>
-              <th style={{ padding: '8px 12px' }}>Sent</th>
-              <th style={{ padding: '8px 12px' }}></th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          {/* Desktop table view */}
+          <table className="automation-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left' }}>
+                <th style={{ padding: '8px 12px' }}>Campaign</th>
+                <th style={{ padding: '8px 12px' }}>Trigger</th>
+                <th className="col-secondary" style={{ padding: '8px 12px' }}>Days</th>
+                <th className="col-secondary" style={{ padding: '8px 12px' }}>Template</th>
+                <th style={{ padding: '8px 12px' }}>Ticket filter</th>
+                <th style={{ padding: '8px 12px' }}>Active</th>
+                <th style={{ padding: '8px 12px' }}>Sent</th>
+                <th style={{ padding: '8px 12px' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {automations.map((a) => (
+                <tr
+                  key={a.id}
+                  data-testid="automation-row"
+                  style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
+                  onClick={() => selectedEventId !== null && onEdit(selectedEventId, a.id)}
+                >
+                  <td style={{ padding: '8px 12px' }} data-testid="automation-name">
+                    {a.name}
+                  </td>
+                  <td style={{ padding: '8px 12px' }}>{TRIGGER_LABELS[a.triggerType]}</td>
+                  <td className="col-secondary" style={{ padding: '8px 12px' }}>
+                    {a.daysOffset !== null ? a.daysOffset : '\u2014'}
+                  </td>
+                  <td className="col-secondary" style={{ padding: '8px 12px' }}>{a.template?.name ?? '\u2014'}</td>
+                  <td style={{ padding: '8px 12px' }}>{a.ticketType?.name ?? 'All'}</td>
+                  <td style={{ padding: '8px 12px' }} onClick={(e) => e.stopPropagation()}>
+                    {toggleSwitch(a)}
+                  </td>
+                  <td style={{ padding: '8px 12px' }} data-testid="sent-count">
+                    {a.sentCount}
+                  </td>
+                  <td style={{ padding: '8px 12px' }} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      data-testid="automation-delete"
+                      onClick={() => handleDelete(a.id)}
+                      style={{
+                        padding: '4px 10px',
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Mobile card view */}
+          <div className="automation-cards">
             {automations.map((a) => (
-              <tr
+              <div
                 key={a.id}
+                className="automation-card"
                 data-testid="automation-row"
-                style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
                 onClick={() => selectedEventId !== null && onEdit(selectedEventId, a.id)}
               >
-                <td style={{ padding: '8px 12px' }} data-testid="automation-name">
-                  {a.name}
-                </td>
-                <td style={{ padding: '8px 12px' }}>{TRIGGER_LABELS[a.triggerType]}</td>
-                <td style={{ padding: '8px 12px' }}>
-                  {a.daysOffset !== null ? a.daysOffset : '—'}
-                </td>
-                <td style={{ padding: '8px 12px' }}>{a.template?.name ?? '—'}</td>
-                <td style={{ padding: '8px 12px' }}>{a.ticketType?.name ?? 'All'}</td>
-                <td style={{ padding: '8px 12px' }} onClick={(e) => e.stopPropagation()}>
-                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24 }}>
-                    <input
-                      type="checkbox"
-                      data-testid="automation-toggle"
-                      checked={a.active}
-                      onChange={() => handleToggle(a.id)}
-                      style={{ position: 'absolute', opacity: 0, width: 44, height: 24, margin: 0, cursor: 'pointer' }}
-                    />
-                    <span
-                      style={{
-                        position: 'absolute',
-                        cursor: 'pointer',
-                        inset: 0,
-                        backgroundColor: a.active ? '#22c55e' : '#ccc',
-                        borderRadius: 24,
-                        transition: 'background-color 0.2s',
-                      }}
-                    />
-                    <span
-                      style={{
-                        position: 'absolute',
-                        height: 18,
-                        width: 18,
-                        left: a.active ? 22 : 3,
-                        bottom: 3,
-                        backgroundColor: '#fff',
-                        borderRadius: '50%',
-                        transition: 'left 0.2s',
-                      }}
-                    />
-                  </label>
-                </td>
-                <td style={{ padding: '8px 12px' }} data-testid="sent-count">
-                  {a.sentCount}
-                </td>
-                <td style={{ padding: '8px 12px' }} onClick={(e) => e.stopPropagation()}>
+                <div className="automation-card-header">
+                  <span className="automation-card-name" data-testid="automation-name">{a.name}</span>
+                  <span className="automation-card-badge">{TRIGGER_LABELS[a.triggerType]}</span>
+                </div>
+                <div className="automation-card-details">
+                  {a.daysOffset !== null && <span>Days: {a.daysOffset} &middot; </span>}
+                  {a.template?.name && <span>Template: {a.template.name} &middot; </span>}
+                  <span>Ticket: {a.ticketType?.name ?? 'All'}</span>
+                </div>
+                <div className="automation-card-actions">
+                  <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {toggleSwitch(a)}
+                    <span style={{ fontSize: 13 }}>{a.active ? 'Active' : 'Inactive'}</span>
+                  </div>
+                  <span className="automation-card-sent" data-testid="sent-count">
+                    {a.sentCount} sent
+                  </span>
                   <button
                     data-testid="automation-delete"
-                    onClick={() => handleDelete(a.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(a.id); }}
                     style={{
-                      padding: '4px 10px',
+                      padding: '8px 14px',
                       background: '#ef4444',
                       color: '#fff',
                       border: 'none',
                       borderRadius: 4,
                       cursor: 'pointer',
-                      fontSize: 13,
+                      fontSize: 14,
+                      minHeight: 44,
                     }}
                   >
                     Delete
                   </button>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </>
       )}
     </div>
   );
