@@ -28,6 +28,11 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Table filters
+  const [filterName, setFilterName] = useState('');
+  const [filterTrigger, setFilterTrigger] = useState<string>('');
+  const [filterActive, setFilterActive] = useState<string>('');
+
   useEffect(() => {
     getEvents().then((evts) => {
       setEvents(evts);
@@ -64,6 +69,14 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
       setAutomations((prev) => prev.filter((a) => a.id !== id));
     } catch (err) { console.error(err); }
   };
+
+  const filtered = automations.filter((a) => {
+    if (filterName && !a.name.toLowerCase().includes(filterName.toLowerCase())) return false;
+    if (filterTrigger && a.triggerType !== filterTrigger) return false;
+    if (filterActive === 'active' && !a.active) return false;
+    if (filterActive === 'inactive' && a.active) return false;
+    return true;
+  });
 
   const activeCount = automations.filter((a) => a.active).length;
   const totalSent = automations.reduce((sum, a) => sum + a.sentCount, 0);
@@ -155,9 +168,49 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                   <th>Sent</th>
                   <th></th>
                 </tr>
+                <tr className="filter-row">
+                  <th>
+                    <input
+                      className="filter-input"
+                      type="text"
+                      placeholder="Search..."
+                      value={filterName}
+                      onChange={(e) => setFilterName(e.target.value)}
+                    />
+                  </th>
+                  <th>
+                    <select
+                      className="filter-input"
+                      value={filterTrigger}
+                      onChange={(e) => setFilterTrigger(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="after_purchase">After purchase</option>
+                      <option value="before_event">Before event</option>
+                      <option value="after_event">After event</option>
+                      <option value="reminder">Reminder</option>
+                    </select>
+                  </th>
+                  <th></th>
+                  <th className="col-secondary"></th>
+                  <th className="col-secondary"></th>
+                  <th>
+                    <select
+                      className="filter-input"
+                      value={filterActive}
+                      onChange={(e) => setFilterActive(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </th>
+                  <th></th>
+                  <th></th>
+                </tr>
               </thead>
               <tbody>
-                {automations.map((a) => (
+                {filtered.map((a) => (
                   <tr
                     key={a.id}
                     data-testid="automation-row"
@@ -187,7 +240,7 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
 
           {/* Mobile cards */}
           <div className="automation-cards">
-            {automations.map((a) => (
+            {filtered.map((a) => (
               <div
                 key={a.id}
                 className="automation-card"
