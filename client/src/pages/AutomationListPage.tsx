@@ -40,7 +40,11 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
   // Table filters
   const [filterName, setFilterName] = useState('');
   const [filterTrigger, setFilterTrigger] = useState<string>('');
+  const [filterTiming, setFilterTiming] = useState<string>('');
+  const [filterTemplate, setFilterTemplate] = useState<string>('');
+  const [filterTicket, setFilterTicket] = useState<string>('');
   const [filterActive, setFilterActive] = useState<string>('');
+  const [filterSent, setFilterSent] = useState<string>('');
 
   useEffect(() => {
     getEvents().then((evts) => {
@@ -79,11 +83,31 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
     } catch (err) { console.error(err); }
   };
 
+  // Derive unique values for dropdown filters
+  const uniqueTemplates = [...new Set(automations.map((a) => a.template?.name).filter(Boolean))] as string[];
+  const uniqueTickets = [...new Set(automations.map((a) => a.ticketType?.name).filter(Boolean))] as string[];
+  const uniqueTimings = [...new Set(automations.map((a) => formatDuration(a.daysOffset)))];
+
   const filtered = automations.filter((a) => {
     if (filterName && !a.name.toLowerCase().includes(filterName.toLowerCase())) return false;
     if (filterTrigger && a.triggerType !== filterTrigger) return false;
+    if (filterTiming && formatDuration(a.daysOffset) !== filterTiming) return false;
+    if (filterTemplate) {
+      const tplName = a.template?.name ?? '';
+      if (filterTemplate === '__none__' ? tplName !== '' : tplName !== filterTemplate) return false;
+    }
+    if (filterTicket) {
+      const tktName = a.ticketType?.name ?? '';
+      if (filterTicket === '__all__' ? tktName !== '' : tktName !== filterTicket) return false;
+    }
     if (filterActive === 'active' && !a.active) return false;
     if (filterActive === 'inactive' && a.active) return false;
+    if (filterSent) {
+      if (filterSent === '0' && a.sentCount !== 0) return false;
+      if (filterSent === '1+' && a.sentCount < 1) return false;
+      if (filterSent === '10+' && a.sentCount < 10) return false;
+      if (filterSent === '100+' && a.sentCount < 100) return false;
+    }
     return true;
   });
 
@@ -200,9 +224,44 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                       <option value="reminder">Reminder</option>
                     </select>
                   </th>
-                  <th></th>
-                  <th className="col-secondary"></th>
-                  <th className="col-secondary"></th>
+                  <th>
+                    <select
+                      className="filter-input"
+                      value={filterTiming}
+                      onChange={(e) => setFilterTiming(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      {uniqueTimings.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="col-secondary">
+                    <select
+                      className="filter-input"
+                      value={filterTemplate}
+                      onChange={(e) => setFilterTemplate(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="__none__">No template</option>
+                      {uniqueTemplates.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="col-secondary">
+                    <select
+                      className="filter-input"
+                      value={filterTicket}
+                      onChange={(e) => setFilterTicket(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="__all__">All tickets</option>
+                      {uniqueTickets.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </th>
                   <th>
                     <select
                       className="filter-input"
@@ -214,7 +273,19 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                       <option value="inactive">Inactive</option>
                     </select>
                   </th>
-                  <th></th>
+                  <th>
+                    <select
+                      className="filter-input"
+                      value={filterSent}
+                      onChange={(e) => setFilterSent(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="0">None (0)</option>
+                      <option value="1+">1+</option>
+                      <option value="10+">10+</option>
+                      <option value="100+">100+</option>
+                    </select>
+                  </th>
                   <th></th>
                 </tr>
               </thead>

@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
-import { automations } from "../db/schema";
+import { automations, emailTemplates } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { AppError } from "../middleware/errorHandler";
+import { sendEmail } from "../services/emailService";
 
 const VALID_TRIGGER_TYPES: string[] = [
   "after_purchase",
@@ -173,17 +174,22 @@ export const testAutomation = async (
       throw new AppError(404, "Automation not found");
     }
 
-    console.log("=== TEST EMAIL ===");
-    console.log(`To: ${email}`);
-    console.log(`Automation: ${automation.name} (ID: ${automation.id})`);
-    console.log(`Trigger: ${automation.triggerType}`);
-    console.log(`Template ID: ${automation.templateId}`);
-    if (automation.pdfPath) {
-      console.log(`PDF Attachment: ${automation.pdfPath}`);
+    const [template] = await db
+      .select()
+      .from(emailTemplates)
+      .where(eq(emailTemplates.id, automation.templateId));
+    if (!template) {
+      throw new AppError(404, "Email template not found");
     }
-    console.log("==================");
 
-    res.json({ message: `Test email logged for ${email}` });
+    await sendEmail({
+      to: email,
+      subject: `[TEST] ${template.subject}`,
+      html: template.body,
+      pdfPath: automation.pdfPath,
+    });
+
+    res.json({ message: `Test email sent to ${email}` });
   } catch (err) {
     next(err);
   }

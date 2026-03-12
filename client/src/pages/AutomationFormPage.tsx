@@ -16,11 +16,11 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string }[] = [
 
 type DurationUnit = 'minutes' | 'hours' | 'days' | 'weeks';
 
-const UNIT_OPTIONS: { value: DurationUnit; label: string; short: string; minutes: number }[] = [
-  { value: 'minutes', label: 'Minutes', short: 'min', minutes: 1 },
-  { value: 'hours', label: 'Hours', short: 'hr', minutes: 60 },
-  { value: 'days', label: 'Days', short: 'd', minutes: 1440 },
-  { value: 'weeks', label: 'Weeks', short: 'wk', minutes: 10080 },
+const UNIT_OPTIONS: { value: DurationUnit; label: string; short: string; minutes: number; max: number; step: number }[] = [
+  { value: 'minutes', label: 'Minutes', short: 'min', minutes: 1, max: 120, step: 5 },
+  { value: 'hours', label: 'Hours', short: 'hr', minutes: 60, max: 72, step: 1 },
+  { value: 'days', label: 'Days', short: 'd', minutes: 1440, max: 30, step: 1 },
+  { value: 'weeks', label: 'Weeks', short: 'wk', minutes: 10080, max: 12, step: 1 },
 ];
 
 function minutesToBestUnit(totalMinutes: number): { value: number; unit: DurationUnit } {
@@ -34,6 +34,16 @@ function minutesToBestUnit(totalMinutes: number): { value: number; unit: Duratio
 function unitToMinutes(value: number, unit: DurationUnit): number {
   const multiplier = UNIT_OPTIONS.find((u) => u.value === unit)!.minutes;
   return Math.round(value * multiplier);
+}
+
+function formatEquivalent(totalMinutes: number): string[] {
+  if (totalMinutes === 0) return [];
+  const parts: string[] = [];
+  if (totalMinutes >= 10080) { const w = Math.floor(totalMinutes / 10080); parts.push(`${w}w`); totalMinutes %= 10080; }
+  if (totalMinutes >= 1440) { const d = Math.floor(totalMinutes / 1440); parts.push(`${d}d`); totalMinutes %= 1440; }
+  if (totalMinutes >= 60) { const h = Math.floor(totalMinutes / 60); parts.push(`${h}h`); totalMinutes %= 60; }
+  if (totalMinutes > 0) parts.push(`${totalMinutes}m`);
+  return parts;
 }
 
 interface Props {
@@ -149,18 +159,50 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
     }
   };
 
+  const currentUnitOpt = UNIT_OPTIONS.find((u) => u.value === durationUnit)!;
+  const sliderMax = currentUnitOpt.max;
+  const sliderStep = currentUnitOpt.step;
+  const sliderPercent = sliderMax > 0 ? Math.min((durationValue / sliderMax) * 100, 100) : 0;
+
+  const equivalentParts = formatEquivalent(totalMinutes);
+
+  const handleStep = (delta: number) => {
+    setDurationValue((prev) => Math.max(0, prev + delta));
+  };
+
+  const handleSlider = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDurationValue(Number(e.target.value));
+  };
+
+  const handleUnitTab = (unit: DurationUnit) => {
+    // Convert current value to the new unit
+    const currentMinutes = unitToMinutes(durationValue, durationUnit);
+    const newUnitOpt = UNIT_OPTIONS.find((u) => u.value === unit)!;
+    const converted = currentMinutes / newUnitOpt.minutes;
+    // Round to reasonable precision
+    const rounded = unit === 'minutes' ? Math.round(converted) : Math.round(converted * 10) / 10;
+    setDurationUnit(unit);
+    setDurationValue(Math.max(0, rounded));
+  };
+
   // Quick presets
   const presets = [
-    { label: '30 min', value: 30, unit: 'minutes' as DurationUnit },
-    { label: '1 hour', value: 1, unit: 'hours' as DurationUnit },
-    { label: '1 day', value: 1, unit: 'days' as DurationUnit },
-    { label: '3 days', value: 3, unit: 'days' as DurationUnit },
-    { label: '1 week', value: 1, unit: 'weeks' as DurationUnit },
+    { label: 'Instant', value: 0, unit: 'minutes' as DurationUnit, icon: '\u26A1' },
+    { label: '30 min', value: 30, unit: 'minutes' as DurationUnit, icon: '' },
+    { label: '1 hour', value: 1, unit: 'hours' as DurationUnit, icon: '' },
+    { label: '1 day', value: 1, unit: 'days' as DurationUnit, icon: '' },
+    { label: '3 days', value: 3, unit: 'days' as DurationUnit, icon: '' },
+    { label: '1 week', value: 1, unit: 'weeks' as DurationUnit, icon: '' },
+    { label: '2 weeks', value: 2, unit: 'weeks' as DurationUnit, icon: '' },
   ];
 
   const triggerLabel = triggerType === 'after_purchase' ? 'after purchase'
     : triggerType === 'before_event' ? 'before event'
     : 'after event';
+
+  const triggerIcon = triggerType === 'after_purchase' ? '\uD83D\uDED2'
+    : triggerType === 'before_event' ? '\u23F3'
+    : '\u2705';
 
   return (
     <div className="page-container">
@@ -215,28 +257,76 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
               <div className="form-field">
                 <label>Send timing</label>
                 <div className="duration-picker">
-                  <div className="duration-picker-inputs">
-                    <input
-                      data-testid="days-offset-input"
-                      className="form-input duration-picker-value"
-                      type="number"
-                      value={durationValue}
-                      onChange={(e) => setDurationValue(Math.max(0, Number(e.target.value)))}
-                      min={0}
-                    />
-                    <select
-                      className="form-input duration-picker-unit"
-                      value={durationUnit}
-                      onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
-                    >
-                      {UNIT_OPTIONS.map((u) => (
-                        <option key={u.value} value={u.value}>{u.label}</option>
-                      ))}
-                    </select>
+                  {/* Unit tabs */}
+                  <div className="dp-unit-tabs">
+                    {UNIT_OPTIONS.map((u) => (
+                      <button
+                        key={u.value}
+                        type="button"
+                        className={`dp-unit-tab ${durationUnit === u.value ? 'dp-unit-tab--active' : ''}`}
+                        onClick={() => handleUnitTab(u.value)}
+                      >
+                        {u.label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="duration-picker-presets">
+
+                  {/* Stepper + input */}
+                  <div className="dp-stepper">
+                    <button
+                      type="button"
+                      className="dp-stepper-btn"
+                      onClick={() => handleStep(-sliderStep)}
+                      disabled={durationValue <= 0}
+                      aria-label="Decrease"
+                    >
+                      &minus;
+                    </button>
+                    <div className="dp-stepper-display">
+                      <input
+                        data-testid="days-offset-input"
+                        className="dp-stepper-input"
+                        type="number"
+                        value={durationValue}
+                        onChange={(e) => setDurationValue(Math.max(0, Number(e.target.value)))}
+                        min={0}
+                      />
+                      <span className="dp-stepper-unit">{currentUnitOpt.short}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="dp-stepper-btn"
+                      onClick={() => handleStep(sliderStep)}
+                      aria-label="Increase"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Slider */}
+                  <div className="dp-slider-wrap">
+                    <input
+                      type="range"
+                      className="dp-slider"
+                      min={0}
+                      max={sliderMax}
+                      step={sliderStep}
+                      value={Math.min(durationValue, sliderMax)}
+                      onChange={handleSlider}
+                      style={{ '--slider-pct': `${sliderPercent}%` } as React.CSSProperties}
+                    />
+                    <div className="dp-slider-labels">
+                      <span>0</span>
+                      <span>{Math.round(sliderMax / 2)} {currentUnitOpt.short}</span>
+                      <span>{sliderMax} {currentUnitOpt.short}</span>
+                    </div>
+                  </div>
+
+                  {/* Quick presets */}
+                  <div className="dp-presets">
                     {presets.map((p) => {
-                      const isActive = durationValue === p.value && durationUnit === p.unit;
+                      const presetMinutes = unitToMinutes(p.value, p.unit);
+                      const isActive = totalMinutes === presetMinutes;
                       return (
                         <button
                           key={p.label}
@@ -244,21 +334,30 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
                           className={`duration-preset ${isActive ? 'duration-preset--active' : ''}`}
                           onClick={() => { setDurationValue(p.value); setDurationUnit(p.unit); }}
                         >
+                          {p.icon && <span className="dp-preset-icon">{p.icon}</span>}
                           {p.label}
                         </button>
                       );
                     })}
                   </div>
-                  {durationValue > 0 && (
-                    <div className="duration-picker-summary">
-                      Email will be sent <strong>{durationValue} {durationUnit}</strong> {triggerLabel}
+
+                  {/* Summary card */}
+                  <div className={`dp-summary ${totalMinutes === 0 ? 'dp-summary--instant' : ''}`}>
+                    <div className="dp-summary-main">
+                      <span className="dp-summary-icon">{totalMinutes === 0 ? '\u26A1' : triggerIcon}</span>
+                      <span>
+                        {totalMinutes === 0
+                          ? <>Email sent <strong>immediately</strong> {triggerLabel}</>
+                          : <>Email sent <strong>{durationValue} {currentUnitOpt.label.toLowerCase()}</strong> {triggerLabel}</>
+                        }
+                      </span>
                     </div>
-                  )}
-                  {durationValue === 0 && (
-                    <div className="duration-picker-summary">
-                      Email will be sent <strong>immediately</strong> {triggerLabel}
-                    </div>
-                  )}
+                    {totalMinutes > 0 && equivalentParts.length > 0 && (
+                      <div className="dp-summary-equiv">
+                        = {equivalentParts.join(' ')} ({totalMinutes.toLocaleString()} total min)
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
