@@ -228,12 +228,20 @@ export const testAutomation = async (
       d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
     const vars: Record<string, string> = {
+      // snake_case
       event_name: event.name,
       customer_name: "Test User",
       customer_email: email,
       event_date: formatDate(new Date(event.date)),
       event_end_date: formatDate(new Date(event.endDate)),
       ticket_type: ticketTypeName,
+      // camelCase aliases
+      eventName: event.name,
+      customerName: "Test User",
+      customerEmail: email,
+      eventDate: formatDate(new Date(event.date)),
+      eventEndDate: formatDate(new Date(event.endDate)),
+      ticketType: ticketTypeName,
     };
 
     const subject = replaceVariables(template.subject, vars);

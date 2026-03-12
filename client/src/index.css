@@ -1364,6 +1364,10 @@ body::before {
   flex: 1;
 }
 
+.modal--wide {
+  max-width: 680px;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;

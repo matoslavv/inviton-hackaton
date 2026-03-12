@@ -1,19 +1,12 @@
 import { useState, useEffect } from 'react';
 import AutomationListPage from './pages/AutomationListPage.tsx';
-import AutomationFormPage from './pages/AutomationFormPage.tsx';
 import TemplateListPage from './pages/TemplateListPage.tsx';
 
-type View =
-  | { page: 'automations' }
-  | { page: 'automation-form'; eventId: number; automationId: number | null }
-  | { page: 'templates' };
-
+type Page = 'automations' | 'templates';
 type Theme = 'dark' | 'light';
 
-type Module = 'automations' | 'templates';
-
 function App() {
-  const [view, setView] = useState<View>({ page: 'automations' });
+  const [page, setPage] = useState<Page>('automations');
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('theme') as Theme) || 'dark';
   });
@@ -25,14 +18,6 @@ function App() {
 
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
-  const currentModule: Module =
-    view.page === 'templates' ? 'templates' : 'automations';
-
-  const navigateModule = (mod: Module) => {
-    if (mod === 'templates') setView({ page: 'templates' });
-    else setView({ page: 'automations' });
-  };
-
   return (
     <>
       <header className="app-header">
@@ -40,14 +25,14 @@ function App() {
         <span className="app-header-sep" />
         <nav className="app-nav">
           <button
-            className={`app-nav-item ${currentModule === 'automations' ? 'app-nav-item--active' : ''}`}
-            onClick={() => navigateModule('automations')}
+            className={`app-nav-item ${page === 'automations' ? 'app-nav-item--active' : ''}`}
+            onClick={() => setPage('automations')}
           >
             Automations
           </button>
           <button
-            className={`app-nav-item ${currentModule === 'templates' ? 'app-nav-item--active' : ''}`}
-            onClick={() => navigateModule('templates')}
+            className={`app-nav-item ${page === 'templates' ? 'app-nav-item--active' : ''}`}
+            onClick={() => setPage('templates')}
           >
             Templates
           </button>
@@ -62,20 +47,7 @@ function App() {
         </button>
       </header>
 
-      {view.page === 'automation-form' ? (
-        <AutomationFormPage
-          eventId={view.eventId}
-          automationId={view.automationId}
-          onBack={() => setView({ page: 'automations' })}
-        />
-      ) : view.page === 'templates' ? (
-        <TemplateListPage />
-      ) : (
-        <AutomationListPage
-          onAdd={(eventId) => setView({ page: 'automation-form', eventId, automationId: null })}
-          onEdit={(eventId, automationId) => setView({ page: 'automation-form', eventId, automationId })}
-        />
-      )}
+      {page === 'templates' ? <TemplateListPage /> : <AutomationListPage />}
     </>
   );
 }
