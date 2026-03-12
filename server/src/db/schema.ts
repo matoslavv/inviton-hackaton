@@ -75,7 +75,8 @@ export const automations = pgTable("automations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const automationsRelations = relations(automations, ({ one }) => ({
+export const automationsRelations = relations(automations, ({ one, many }) => ({
+  logs: many(automationLogs),
   event: one(events, {
     fields: [automations.eventId],
     references: [events.id],
@@ -87,6 +88,22 @@ export const automationsRelations = relations(automations, ({ one }) => ({
   ticketType: one(ticketTypes, {
     fields: [automations.ticketTypeId],
     references: [ticketTypes.id],
+  }),
+}));
+
+// ── Automation Logs ────────────────────────────────────────────────────────
+export const automationLogs = pgTable("automation_logs", {
+  id: serial("id").primaryKey(),
+  automationId: integer("automation_id").notNull().references(() => automations.id, { onDelete: 'cascade' }),
+  action: text("action").notNull(), // 'created' | 'updated' | 'toggled' | 'deleted' | 'duplicated' | 'test_sent'
+  detail: text("detail"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const automationLogsRelations = relations(automationLogs, ({ one }) => ({
+  automation: one(automations, {
+    fields: [automationLogs.automationId],
+    references: [automations.id],
   }),
 }));
 

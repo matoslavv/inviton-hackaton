@@ -43,3 +43,19 @@ export function sendTestEmail(id: number, email: string): Promise<void> {
     body: JSON.stringify({ email }),
   });
 }
+
+export function duplicateAutomation(id: number): Promise<Automation> {
+  return fetchJson<Automation>(`/automations/${id}/duplicate`, { method: 'POST' });
+}
+
+export interface AutomationLog {
+  id: number;
+  automationId: number;
+  action: string;
+  detail: string | null;
+  createdAt: string;
+}
+
+export function getAutomationLogs(automationId: number): Promise<AutomationLog[]> {
+  return fetchJson<AutomationLog[]>(`/automations/${automationId}/logs`);
+}

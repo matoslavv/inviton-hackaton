@@ -14,6 +14,8 @@ import {
   toggleAutomation,
   deleteAutomation,
   testAutomation,
+  duplicateAutomation,
+  getAutomationLogs,
 } from "../controllers/automationController";
 import { getOrders, createOrder } from "../controllers/orderController";
 import { uploadPdf } from "../controllers/uploadController";
@@ -71,6 +73,8 @@ router.put("/automations/:id", updateAutomation);
 router.patch("/automations/:id/toggle", toggleAutomation);
 router.delete("/automations/:id", deleteAutomation);
 router.post("/automations/:id/test", testAutomation);
+router.post("/automations/:id/duplicate", duplicateAutomation);
+router.get("/automations/:id/logs", getAutomationLogs);
 
 // ── PDF Upload ──────────────────────────────────────────────────────────────
 router.post("/upload/pdf", upload.single("pdf"), uploadPdf);

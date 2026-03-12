@@ -105,6 +105,31 @@ function setupApiMocks(page: Page) {
     await route.fulfill({ json: { message: 'Test email sent' } });
   });
 
+  page.route('**/api/automations/*/duplicate', async (route) => {
+    const url = route.request().url();
+    const idMatch = url.match(/\/automations\/(\d+)\/duplicate/);
+    const id = idMatch ? Number(idMatch[1]) : -1;
+    const original = automations.find((a) => a.id === id);
+    if (original) {
+      const duplicate = {
+        ...original,
+        id: nextId++,
+        name: `${original.name} (copy)`,
+        active: false,
+        sentCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+      automations.push(duplicate);
+      await route.fulfill({ status: 201, json: duplicate });
+    } else {
+      await route.fulfill({ status: 404, json: { error: 'Not found' } });
+    }
+  });
+
+  page.route('**/api/automations/*/logs', async (route) => {
+    await route.fulfill({ json: [] });
+  });
+
   page.route('**/api/upload/pdf', async (route) => {
     await route.fulfill({ json: { path: '/uploads/test.pdf' } });
   });

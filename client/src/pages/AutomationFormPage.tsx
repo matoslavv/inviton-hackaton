@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Automation, EmailTemplate, TicketType } from '../types/index.ts';
-import { getAutomations, createAutomation, updateAutomation, sendTestEmail } from '../services/automations.ts';
+import { getAutomations, createAutomation, updateAutomation, sendTestEmail, getAutomationLogs } from '../services/automations.ts';
+import type { AutomationLog } from '../services/automations.ts';
 import { getTemplates } from '../services/templates.ts';
 import { getTicketTypes } from '../services/ticketTypes.ts';
 import { uploadPdf } from '../services/upload.ts';
@@ -46,6 +47,18 @@ function formatEquivalent(totalMinutes: number): string[] {
   return parts;
 }
 
+function formatAction(action: string): string {
+  const map: Record<string, string> = {
+    created: 'Created',
+    updated: 'Updated',
+    toggled: 'Toggled',
+    deleted: 'Deleted',
+    duplicated: 'Duplicated',
+    test_sent: 'Test sent',
+  };
+  return map[action] ?? action;
+}
+
 interface Props {
   eventId: number;
   automationId: number | null;
@@ -70,6 +83,7 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
   const [testSending, setTestSending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [logs, setLogs] = useState<AutomationLog[]>([]);
 
   const isReminder = triggerType === 'reminder';
   const totalMinutes = unitToMinutes(durationValue, durationUnit);
@@ -98,6 +112,7 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
         }
       })
       .catch(console.error);
+    getAutomationLogs(automationId).then(setLogs).catch(console.error);
   }, [eventId, automationId]);
 
   const handlePdfChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -449,6 +464,22 @@ export default function AutomationFormPage({ eventId, automationId, onBack }: Pr
                 )}
               </div>
             </>
+          )}
+
+          {/* ── Activity log ── */}
+          {automationId !== null && logs.length > 0 && (
+            <div className="form-section">
+              <div className="form-section-title">Activity log</div>
+              <div className="activity-log">
+                {logs.map(log => (
+                  <div key={log.id} className="activity-log-item">
+                    <span className="activity-log-action">{formatAction(log.action)}</span>
+                    {log.detail && <span className="activity-log-detail">{log.detail}</span>}
+                    <span className="activity-log-time">{new Date(log.createdAt).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* ── Save ── */}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Event, Automation } from '../types/index.ts';
 import { getEvents } from '../services/events.ts';
-import { getAutomations, toggleAutomation, deleteAutomation } from '../services/automations.ts';
+import { getAutomations, toggleAutomation, deleteAutomation, duplicateAutomation } from '../services/automations.ts';
 
 const TRIGGER_LABELS: Record<Automation['triggerType'], string> = {
   after_purchase: 'After purchase',
@@ -45,6 +45,8 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
   const [filterTicket, setFilterTicket] = useState<string>('');
   const [filterActive, setFilterActive] = useState<string>('');
   const [filterSent, setFilterSent] = useState<string>('');
+  const [sortCol, setSortCol] = useState<string>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     getEvents().then((evts) => {
@@ -83,6 +85,25 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
     } catch (err) { console.error(err); }
   };
 
+  const handleDuplicate = async (id: number) => {
+    try {
+      await duplicateAutomation(id);
+      loadAutomations();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSort = (col: string) => {
+    if (sortCol === col) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+  };
+
+  const sortIndicator = (col: string) =>
+    sortCol === col ? <span className="sort-indicator">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span> : null;
+
   // Derive unique values for dropdown filters
   const uniqueTemplates = [...new Set(automations.map((a) => a.template?.name).filter(Boolean))] as string[];
   const uniqueTickets = [...new Set(automations.map((a) => a.ticketType?.name).filter(Boolean))] as string[];
@@ -109,6 +130,27 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
       if (filterSent === '100+' && a.sentCount < 100) return false;
     }
     return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    switch (sortCol) {
+      case 'name':
+        return dir * a.name.localeCompare(b.name);
+      case 'triggerType':
+        return dir * a.triggerType.localeCompare(b.triggerType);
+      case 'daysOffset': {
+        const aVal = a.daysOffset ?? (sortDir === 'asc' ? Infinity : -Infinity);
+        const bVal = b.daysOffset ?? (sortDir === 'asc' ? Infinity : -Infinity);
+        return dir * (Number(aVal) - Number(bVal));
+      }
+      case 'active':
+        return dir * (Number(a.active) - Number(b.active));
+      case 'sentCount':
+        return dir * (a.sentCount - b.sentCount);
+      default:
+        return 0;
+    }
   });
 
   const activeCount = automations.filter((a) => a.active).length;
@@ -192,13 +234,13 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Campaign</th>
-                  <th>Trigger</th>
-                  <th>Timing</th>
+                  <th className="th-sortable" onClick={() => handleSort('name')}>Campaign{sortIndicator('name')}</th>
+                  <th className="th-sortable" onClick={() => handleSort('triggerType')}>Trigger{sortIndicator('triggerType')}</th>
+                  <th className="th-sortable" onClick={() => handleSort('daysOffset')}>Timing{sortIndicator('daysOffset')}</th>
                   <th className="col-secondary">Template</th>
                   <th className="col-secondary">Ticket filter</th>
-                  <th>Active</th>
-                  <th>Sent</th>
+                  <th className="th-sortable" onClick={() => handleSort('active')}>Active{sortIndicator('active')}</th>
+                  <th className="th-sortable" onClick={() => handleSort('sentCount')}>Sent{sortIndicator('sentCount')}</th>
                   <th></th>
                 </tr>
                 <tr className="filter-row">
@@ -290,7 +332,7 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((a) => (
+                {sorted.map((a) => (
                   <tr
                     key={a.id}
                     data-testid="automation-row"
@@ -303,7 +345,13 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                     <td className="col-secondary">{a.ticketType?.name ?? 'All'}</td>
                     <td onClick={(e) => e.stopPropagation()}>{renderToggle(a)}</td>
                     <td data-testid="sent-count"><span className="sent-count">{a.sentCount}</span></td>
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={(e) => { e.stopPropagation(); handleDuplicate(a.id); }}
+                      >
+                        Duplicate
+                      </button>
                       <button
                         data-testid="automation-delete"
                         className="btn btn-danger btn-sm"
@@ -320,7 +368,7 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
 
           {/* Mobile cards */}
           <div className="automation-cards">
-            {filtered.map((a) => (
+            {sorted.map((a) => (
               <div
                 key={a.id}
                 className="automation-card"
@@ -343,6 +391,12 @@ export default function AutomationListPage({ onAdd, onEdit }: Props) {
                     </span>
                   </div>
                   <span className="automation-card-sent" data-testid="sent-count">{a.sentCount} sent</span>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={(e) => { e.stopPropagation(); handleDuplicate(a.id); }}
+                  >
+                    Duplicate
+                  </button>
                   <button
                     data-testid="automation-delete"
                     className="btn btn-danger btn-sm"

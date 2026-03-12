@@ -1,9 +1,16 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
-import { automations, emailTemplates } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { automations, automationLogs, emailTemplates, events, ticketTypes } from "../db/schema";
+import { eq, desc } from "drizzle-orm";
 import { AppError } from "../middleware/errorHandler";
 import { sendEmail } from "../services/emailService";
+
+function replaceVariables(text: string, vars: Record<string, string>): string {
+  return Object.entries(vars).reduce(
+    (result, [key, value]) => result.replaceAll(`{{${key}}}`, value),
+    text
+  );
+}
 
 const VALID_TRIGGER_TYPES: string[] = [
   "after_purchase",
@@ -19,10 +26,10 @@ export const getAutomations = async (
 ) => {
   try {
     const eventId = Number(req.params.eventId);
-    const result = await db
-      .select()
-      .from(automations)
-      .where(eq(automations.eventId, eventId));
+    const result = await db.query.automations.findMany({
+      where: eq(automations.eventId, eventId),
+      with: { template: true, ticketType: true },
+    });
     res.json(result);
   } catch (err) {
     next(err);
@@ -61,6 +68,11 @@ export const createAutomation = async (
         pdfPath: pdfPath ?? null,
       })
       .returning();
+    await db.insert(automationLogs).values({
+      automationId: automation.id,
+      action: 'created',
+      detail: `Created automation "${automation.name}"`,
+    });
     res.status(201).json(automation);
   } catch (err) {
     next(err);
@@ -102,6 +114,11 @@ export const updateAutomation = async (
     if (!updated) {
       throw new AppError(404, "Automation not found");
     }
+    await db.insert(automationLogs).values({
+      automationId: updated.id,
+      action: 'updated',
+      detail: `Updated automation "${updated.name}"`,
+    });
     res.json(updated);
   } catch (err) {
     next(err);
@@ -128,6 +145,11 @@ export const toggleAutomation = async (
       .set({ active: !existing.active })
       .where(eq(automations.id, id))
       .returning();
+    await db.insert(automationLogs).values({
+      automationId: updated.id,
+      action: 'toggled',
+      detail: `Automation ${updated.active ? 'activated' : 'deactivated'}`,
+    });
     res.json(updated);
   } catch (err) {
     next(err);
@@ -149,6 +171,7 @@ export const deleteAutomation = async (
       throw new AppError(404, "Automation not found");
     }
     res.json({ message: "Automation deleted" });
+    // Note: logs are cascade-deleted with the automation
   } catch (err) {
     next(err);
   }
@@ -182,14 +205,112 @@ export const testAutomation = async (
       throw new AppError(404, "Email template not found");
     }
 
+    const [event] = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, automation.eventId));
+    if (!event) {
+      throw new AppError(404, "Event not found");
+    }
+
+    let ticketTypeName = "General";
+    if (automation.ticketTypeId) {
+      const [ticketType] = await db
+        .select()
+        .from(ticketTypes)
+        .where(eq(ticketTypes.id, automation.ticketTypeId));
+      if (ticketType) {
+        ticketTypeName = ticketType.name;
+      }
+    }
+
+    const formatDate = (d: Date) =>
+      d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+    const vars: Record<string, string> = {
+      event_name: event.name,
+      customer_name: "Test User",
+      customer_email: email,
+      event_date: formatDate(new Date(event.date)),
+      event_end_date: formatDate(new Date(event.endDate)),
+      ticket_type: ticketTypeName,
+    };
+
+    const subject = replaceVariables(template.subject, vars);
+    const body = replaceVariables(template.body, vars);
+
     await sendEmail({
       to: email,
-      subject: `[TEST] ${template.subject}`,
-      html: template.body,
+      subject: `[TEST] ${subject}`,
+      html: body,
       pdfPath: automation.pdfPath,
     });
 
+    await db.insert(automationLogs).values({
+      automationId: automation.id,
+      action: 'test_sent',
+      detail: `Test email sent to ${email}`,
+    });
     res.json({ message: `Test email sent to ${email}` });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const duplicateAutomation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = Number(req.params.id);
+    const [existing] = await db
+      .select()
+      .from(automations)
+      .where(eq(automations.id, id));
+    if (!existing) {
+      throw new AppError(404, "Automation not found");
+    }
+
+    const [duplicate] = await db
+      .insert(automations)
+      .values({
+        eventId: existing.eventId,
+        name: `${existing.name} (copy)`,
+        triggerType: existing.triggerType,
+        daysOffset: existing.daysOffset,
+        templateId: existing.templateId,
+        ticketTypeId: existing.ticketTypeId,
+        pdfPath: existing.pdfPath,
+        active: false,
+        sentCount: 0,
+      })
+      .returning();
+    await db.insert(automationLogs).values({
+      automationId: duplicate.id,
+      action: 'duplicated',
+      detail: `Duplicated from "${existing.name}" (id: ${existing.id})`,
+    });
+    res.status(201).json(duplicate);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAutomationLogs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = Number(req.params.id);
+    const logs = await db
+      .select()
+      .from(automationLogs)
+      .where(eq(automationLogs.automationId, id))
+      .orderBy(desc(automationLogs.createdAt))
+      .limit(50);
+    res.json(logs);
   } catch (err) {
     next(err);
   }
