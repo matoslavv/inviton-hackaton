@@ -226,6 +226,45 @@ body::before {
   color: var(--text-secondary);
 }
 
+/* ── Nav tabs ──────────────────────────────────────────── */
+.app-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.app-nav-item {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.app-nav-item:hover:not(.app-nav-item--active) {
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+.app-nav-item--active {
+  color: var(--accent-hover);
+  background: var(--accent-subtle);
+}
+
+/* ── Template body textarea ────────────────────────────── */
+.template-body-input {
+  resize: vertical;
+  min-height: 200px;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 /* ── Page container ─────────────────────────────────────── */
 .page-container {
   max-width: 1080px;

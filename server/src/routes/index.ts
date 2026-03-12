@@ -6,7 +6,7 @@ import { AppError } from "../middleware/errorHandler";
 
 import { getEvents, getEvent, createEvent } from "../controllers/eventController";
 import { getTicketTypes, createTicketType } from "../controllers/ticketTypeController";
-import { getTemplates, createTemplate } from "../controllers/templateController";
+import { getTemplates, getTemplate, createTemplate, updateTemplate, deleteTemplate } from "../controllers/templateController";
 import {
   getAutomations,
   createAutomation,
@@ -59,7 +59,10 @@ router.post("/events/:eventId/ticket-types", createTicketType);
 
 // ── Email Templates ─────────────────────────────────────────────────────────
 router.get("/templates", getTemplates);
+router.get("/templates/:id", getTemplate);
 router.post("/templates", createTemplate);
+router.put("/templates/:id", updateTemplate);
+router.delete("/templates/:id", deleteTemplate);
 
 // ── Automations ─────────────────────────────────────────────────────────────
 router.get("/events/:eventId/automations", getAutomations);
