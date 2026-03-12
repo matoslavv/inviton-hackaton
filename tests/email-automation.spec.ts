@@ -137,8 +137,10 @@ test.describe('Email Automation Module', () => {
 
     await page.getByTestId('save-btn').click();
 
-    await expect(page.getByTestId('automation-row')).toHaveCount(1);
-    await expect(page.getByText('Welcome Email')).toBeVisible();
+    // Desktop table + mobile cards both render rows; scope to visible table
+    const table = page.locator('.data-table-wrapper');
+    await expect(table.getByTestId('automation-row')).toHaveCount(1);
+    await expect(table.getByText('Welcome Email')).toBeVisible();
   });
 
   test('should create a "before event" automation with VIP filter', async ({ page }) => {
@@ -154,7 +156,7 @@ test.describe('Email Automation Module', () => {
 
     await page.getByTestId('save-btn').click();
 
-    await expect(page.getByText('VIP Pre-Event Info')).toBeVisible();
+    await expect(page.locator('.data-table-wrapper').getByText('VIP Pre-Event Info')).toBeVisible();
   });
 
   test('should hide days/ticket-filter/pdf for reminder type', async ({ page }) => {
@@ -195,12 +197,13 @@ test.describe('Email Automation Module', () => {
     await page.getByTestId('template-select').selectOption({ index: 1 });
     await page.getByTestId('save-btn').click();
 
-    await expect(page.getByText('Delete Me')).toBeVisible();
+    const table = page.locator('.data-table-wrapper');
+    await expect(table.getByText('Delete Me')).toBeVisible();
 
     // Delete it
     await page.getByTestId('automation-delete').first().click();
 
-    await expect(page.getByText('Delete Me')).not.toBeVisible();
+    await expect(table.getByText('Delete Me')).not.toBeVisible();
   });
 
   test('should reject PDF larger than 2MB', async ({ page }) => {
@@ -238,6 +241,6 @@ test.describe('Email Automation Module', () => {
     await page.getByTestId('template-select').selectOption({ index: 1 });
     await page.getByTestId('save-btn').click();
 
-    await expect(page.getByText('Test Preview')).toBeVisible();
+    await expect(page.locator('.data-table-wrapper').getByText('Test Preview')).toBeVisible();
   });
 });
